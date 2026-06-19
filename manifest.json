@@ -1,0 +1,19 @@
+{
+  "name": "Etapa 2 - Líneas Transmisión Chile",
+  "short_name": "Lineas Chile E2",
+  "description": "Detector GPS offline con radar y brújula.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1f33",
+  "theme_color": "#0b1f33",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
