@@ -1,13 +1,13 @@
 {
-  "name": "Etapa 2 - Líneas Transmisión Chile",
-  "short_name": "Lineas Chile E2",
-  "description": "Detector GPS offline con radar y brújula.",
+  "name": "ElectroLíneas Chile GPS - Etapa 2",
+  "short_name": "ElectroLíneas E2",
+  "description": "Aplicación creada por Wladimir Campos - www.JFSasesorias.org",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0b1f33",
-  "theme_color": "#0b1f33",
+  "background_color": "#071827",
+  "theme_color": "#071827",
   "icons": [
     {
       "src": "./assets/icon.svg",
