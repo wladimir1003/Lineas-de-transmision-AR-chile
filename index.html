@@ -1,1 +1,871 @@
-<!DOCTYPE html><html lang="es"><head><!-- ElectroLíneas Chile GPS | Creado por Wladimir Campos | www.JFSasesorias.org --><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/><title>ElectroLíneas Chile GPS - Etapa 2</title><meta name="description" content="Aplicación GPS para líneas de transmisión y subestaciones de Chile. Creado por Wladimir Campos - www.JFSasesorias.org"/><meta name="author" content="Wladimir Campos - www.JFSasesorias.org"/><meta name="theme-color" content="#071827"/><link rel="manifest" href="./manifest.json"/><link rel="icon" href="./assets/icon.svg" type="image/svg+xml"/><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><link rel="stylesheet" href="./css/styles.css"/></head><body><div id="map"></div><header class="app-header"><div><strong>ElectroLíneas Chile GPS</strong><span>Etapa 2 · Creado por Wladimir Campos · www.JFSasesorias.org</span></div></header><section class="toolbar"><button id="btnGPS" class="btn primary">GPS</button><button id="btnDownload" class="btn">Datos oficiales</button><button id="btnCenter" class="btn">Centrar</button><button id="btnStatus" class="btn">Estado</button><button id='btnRadar' class='btn'>Radar</button><label class="radio-box">Radio <input id="searchRadius" type="number" value="150" min="10" step="10"> m</label></section><section id="radarPanel" class="radar hidden"><div class="radar-circle"><div class="north">N</div><div id="radarArrow" class="radar-arrow">↑</div><div class="center-dot"></div></div><div class="radar-data"><strong id="radarTitle">Sin objetivo</strong><span id="radarDistance">Distancia: --</span><span id="radarBearing">Rumbo: --</span><span id="radarTarget">Objetivo: línea</span></div></section><section id="infoPanel" class="info-panel"><h2>Etapa 2: Radar y navegación</h2><p>Radar hacia el punto más cercano de línea o subestación, búsqueda táctil mejorada y radio configurable.</p><p class="hint">Presiona <b>Datos oficiales</b> y luego <b>GPS</b>.</p><div class="copyright"><b>ElectroLíneas Chile GPS</b><br>Creado por Wladimir Campos<br>www.JFSasesorias.org</div></section><footer id="footer-info">ElectroLíneas Chile GPS · Wladimir Campos · www.JFSasesorias.org</footer><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script><script src="./js/app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!--
+  ElectroLíneas Chile GPS - Etapa 2 Final
+  Creado por Wladimir Campos
+  www.JFSasesorias.org
+  -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ElectroLíneas Chile GPS - Etapa 2 Final</title>
+  <meta name="description" content="Aplicación GPS para líneas de transmisión y subestaciones de Chile. Creado por Wladimir Campos - www.JFSasesorias.org" />
+  <meta name="author" content="Wladimir Campos - www.JFSasesorias.org" />
+  <meta name="theme-color" content="#071827" />
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    /*
+    ElectroLíneas Chile GPS
+    Creado por Wladimir Campos
+    www.JFSasesorias.org
+    */
+
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#071827}
+    #map{width:100%;height:100%}
+
+    /* El zoom queda completamente libre arriba a la izquierda */
+    .leaflet-top.leaflet-left{top:10px!important;left:10px!important}
+    .leaflet-control-zoom a{
+      width:42px!important;
+      height:42px!important;
+      line-height:42px!important;
+      font-size:24px!important;
+      font-weight:bold;
+    }
+
+    .brand-card{
+      position:fixed;
+      top:10px;
+      left:62px;
+      right:10px;
+      z-index:900;
+      background:rgba(7,24,39,.92);
+      color:#fff;
+      border-radius:14px;
+      padding:9px 12px;
+      box-shadow:0 5px 16px rgba(0,0,0,.34);
+      pointer-events:none;
+    }
+    .brand-card strong{display:block;font-size:14px}
+    .brand-card span{display:block;font-size:10.5px;color:#ffbd66;margin-top:2px}
+
+    /* Barra inferior para no tapar zoom */
+    .control-dock{
+      position:fixed;
+      left:8px;
+      right:8px;
+      bottom:8px;
+      z-index:1300;
+      background:rgba(7,24,39,.96);
+      border-radius:18px;
+      padding:8px;
+      box-shadow:0 -4px 20px rgba(0,0,0,.36);
+      color:#fff;
+    }
+
+    .button-row{
+      display:flex;
+      gap:6px;
+      overflow-x:auto;
+      padding-bottom:5px;
+    }
+
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:10px 12px;
+      background:#17324d;
+      color:#fff;
+      font-weight:bold;
+      white-space:nowrap;
+      min-height:42px;
+    }
+    .btn.primary{background:#ff8c00}
+    .btn.active{outline:2px solid #ffbd66}
+
+    .settings-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      margin-top:5px;
+    }
+
+    .setting{
+      background:rgba(255,255,255,.1);
+      border-radius:12px;
+      padding:7px;
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+    }
+
+    .setting input,.setting select{
+      width:100%;
+      border:1px solid #cfd8dc;
+      border-radius:9px;
+      padding:8px;
+      font-weight:bold;
+      background:#fff;
+      color:#071827;
+    }
+
+    .info-panel{
+      position:fixed;
+      left:8px;
+      right:8px;
+      bottom:145px;
+      z-index:1100;
+      background:rgba(255,255,255,.97);
+      border-radius:16px;
+      padding:12px;
+      box-shadow:0 5px 20px rgba(0,0,0,.35);
+      max-height:31%;
+      overflow:auto;
+      color:#102030;
+    }
+
+    .info-panel h2{margin:0 0 7px;font-size:17px;color:#071827}
+    .data-row{font-size:13px;margin:4px 0}
+    .hint{font-size:12px;color:#555}
+    .status-ok,.status-warn,.status-bad{
+      display:inline-block;
+      border-radius:8px;
+      padding:5px 7px;
+      font-weight:bold;
+      margin-bottom:6px;
+      font-size:12px;
+    }
+    .status-ok{background:#d4edda;color:#155724}
+    .status-warn{background:#fff3cd;color:#856404}
+    .status-bad{background:#f8d7da;color:#721c24}
+    .copyright{
+      margin-top:8px;
+      padding-top:7px;
+      border-top:1px solid #ddd;
+      font-size:11.5px;
+      color:#555;
+      text-align:center;
+    }
+
+    .radar{
+      position:fixed;
+      top:70px;
+      right:10px;
+      width:176px;
+      z-index:1200;
+      background:rgba(7,24,39,.95);
+      color:#fff;
+      border-radius:18px;
+      padding:10px;
+      box-shadow:0 6px 22px rgba(0,0,0,.45);
+    }
+    .radar.hidden{display:none}
+    .radar-circle{
+      position:relative;
+      margin:auto;
+      width:110px;
+      height:110px;
+      border-radius:50%;
+      border:3px solid #ff8c00;
+      background:radial-gradient(circle,#17324d 0%,#071827 70%);
+    }
+    .north{
+      position:absolute;
+      top:5px;
+      left:50%;
+      transform:translateX(-50%);
+      color:#ffbd66;
+      font-weight:bold;
+      font-size:14px;
+    }
+    .radar-arrow{
+      position:absolute;
+      left:50%;
+      top:50%;
+      font-size:42px;
+      transform-origin:center center;
+      transform:translate(-50%,-50%) rotate(-90deg);
+      transition:.2s;
+      color:#ff8c00;
+    }
+    .center-dot{
+      position:absolute;
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#fff;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+    }
+    .radar-data{
+      display:flex;
+      flex-direction:column;
+      text-align:center;
+      font-size:11.5px;
+      gap:2px;
+      margin-top:6px;
+    }
+
+    /* Capa táctil más ancha */
+    .touch-line{cursor:pointer}
+
+    @media (min-width:800px){
+      .control-dock{left:50%;transform:translateX(-50%);width:720px}
+      .info-panel{left:auto;right:16px;bottom:160px;width:420px;max-height:42%}
+      .brand-card{right:auto;width:430px}
+    }
+
+    @media (max-width:420px){
+      .brand-card strong{font-size:13px}
+      .brand-card span{font-size:9.5px}
+      .info-panel{bottom:158px;max-height:28%}
+      .settings-row{grid-template-columns:1fr}
+      .radar{width:160px}
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <div class="brand-card">
+    <strong>ElectroLíneas Chile GPS · Etapa 2 Final</strong>
+    <span>Creado por Wladimir Campos · www.JFSasesorias.org</span>
+  </div>
+
+  <section id="radarPanel" class="radar hidden">
+    <div class="radar-circle">
+      <div class="north">N</div>
+      <div id="radarArrow" class="radar-arrow">➤</div>
+      <div class="center-dot"></div>
+    </div>
+    <div class="radar-data">
+      <strong id="radarTitle">Sin objetivo</strong>
+      <span id="radarDistance">Distancia: --</span>
+      <span id="radarBearing">Rumbo: --</span>
+      <span id="radarModeText">Modo: --</span>
+    </div>
+  </section>
+
+  <section id="infoPanel" class="info-panel">
+    <h2>Etapa 2 Final</h2>
+    <span class="status-warn">Radar + línea + subestación</span>
+    <div class="data-row">La barra está abajo para no tapar el zoom.</div>
+    <div class="data-row">El radio de búsqueda está visible.</div>
+    <div class="data-row">El radar puede apuntar a línea, subestación o al objetivo más cercano.</div>
+    <div class="copyright">
+      <b>Creado por Wladimir Campos</b><br>www.JFSasesorias.org
+    </div>
+  </section>
+
+  <section class="control-dock">
+    <div class="button-row">
+      <button id="btnGPS" class="btn primary">Activar GPS</button>
+      <button id="btnDownload" class="btn">Datos oficiales</button>
+      <button id="btnCenter" class="btn">Centrar</button>
+      <button id="btnRadar" class="btn">Radar</button>
+      <button id="btnStatus" class="btn">Estado</button>
+    </div>
+
+    <div class="settings-row">
+      <label class="setting">
+        <span>Radio</span>
+        <input id="searchRadius" type="number" value="150" min="10" step="10">
+      </label>
+
+      <label class="setting">
+        <span>Radar</span>
+        <select id="radarMode">
+          <option value="nearest">Más cercano</option>
+          <option value="line">Línea eléctrica</option>
+          <option value="substation">Subestación</option>
+          <option value="both">Ambas</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+  <script>
+    /*
+    ElectroLíneas Chile GPS - Etapa 2 Final
+    Creado por Wladimir Campos
+    www.JFSasesorias.org
+    */
+
+    let map;
+    let userMarker = null;
+    let userCircle = null;
+    let lineasGeoJSON = null;
+    let subestacionesGeoJSON = null;
+    let capaLineas = null;
+    let capaLineasTouch = null;
+    let capaSubestaciones = null;
+    let lineaResaltada = null;
+    let puntoObjetivoLayer = null;
+    let ultimaPosicion = null;
+    let watchId = null;
+    let radarVisible = false;
+    let heading = 0;
+    let ultimoObjetivo = null;
+    let ultimoObjetivoSecundario = null;
+
+    const URL_LINEAS = "https://ide-energia.minenergia.cl/server/rest/services/IDE_Energia/Visor_IDE_Energ%C3%ADa/MapServer/10/query";
+    const URL_SUBESTACIONES = "https://ide-energia.minenergia.cl/server/rest/services/IDE_Energia/Visor_IDE_Energ%C3%ADa/MapServer/8/query";
+    const panel = document.getElementById("infoPanel");
+
+    document.addEventListener("DOMContentLoaded", () => {
+      iniciarMapa();
+      configurarBotones();
+      registrarServiceWorker();
+      cargarDatosIniciales();
+    });
+
+    function configurarBotones(){
+      document.getElementById("btnGPS").addEventListener("click", activarGPS);
+      document.getElementById("btnDownload").addEventListener("click", descargarDatosOficiales);
+      document.getElementById("btnCenter").addEventListener("click", centrarUsuario);
+      document.getElementById("btnRadar").addEventListener("click", alternarRadar);
+      document.getElementById("btnStatus").addEventListener("click", mostrarEstado);
+      document.getElementById("radarMode").addEventListener("change", () => {
+        if (ultimaPosicion) detectarCercanos(
+          ultimaPosicion.coords.latitude,
+          ultimaPosicion.coords.longitude,
+          ultimaPosicion.coords.accuracy
+        );
+      });
+    }
+
+    function iniciarMapa(){
+      map = L.map("map", { zoomControl:true }).setView([-33.45, -70.66], 6);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom:21,
+        attribution:"© OpenStreetMap"
+      }).addTo(map);
+    }
+
+    async function cargarDatosIniciales(){
+      const cacheLineas = localStorage.getItem("lineas_oficiales_geojson");
+      const cacheSub = localStorage.getItem("subestaciones_oficiales_geojson");
+
+      if (cacheLineas && cacheSub) {
+        try {
+          lineasGeoJSON = JSON.parse(cacheLineas);
+          subestacionesGeoJSON = JSON.parse(cacheSub);
+          dibujarCapas();
+          panel.innerHTML = panelBase("Datos oficiales cargados", [
+            "Líneas: " + lineasGeoJSON.features.length,
+            "Subestaciones: " + subestacionesGeoJSON.features.length,
+            "Radio visible abajo.",
+            "Zoom libre arriba a la izquierda."
+          ], "ok");
+          return;
+        } catch(e) {
+          console.warn(e);
+        }
+      }
+
+      await cargarDatosDemo();
+    }
+
+    async function cargarDatosDemo(){
+      lineasGeoJSON = await (await fetch("./data/lineas_transmision.geojson")).json();
+      subestacionesGeoJSON = await (await fetch("./data/subestaciones.geojson")).json();
+      dibujarCapas();
+      panel.innerHTML = panelBase("Datos demo cargados", [
+        "Presiona Datos oficiales para intentar cargar capas reales.",
+        "Presiona Activar GPS para buscar línea y subestación.",
+        "El radar tiene selector: más cercano, línea, subestación o ambas."
+      ]);
+    }
+
+    async function descargarDatosOficiales(){
+      try{
+        panel.innerHTML = panelBase("Descargando datos oficiales", [
+          "Conectando con IDE Energía.",
+          "Esto puede demorar."
+        ]);
+
+        const lineas = await descargarArcGIS(URL_LINEAS, "líneas");
+        const subestaciones = await descargarArcGIS(URL_SUBESTACIONES, "subestaciones");
+
+        localStorage.setItem("lineas_oficiales_geojson", JSON.stringify(lineas));
+        localStorage.setItem("subestaciones_oficiales_geojson", JSON.stringify(subestaciones));
+        localStorage.setItem("fecha_descarga_datos", new Date().toISOString());
+
+        lineasGeoJSON = lineas;
+        subestacionesGeoJSON = subestaciones;
+        dibujarCapas();
+
+        panel.innerHTML = panelBase("Datos oficiales descargados", [
+          "Líneas: " + lineas.features.length,
+          "Subestaciones: " + subestaciones.features.length,
+          "Quedaron guardados para uso offline."
+        ], "ok");
+      } catch(err) {
+        panel.innerHTML = panelBase("No se pudo descargar", [
+          err.message,
+          "Puede ser bloqueo CORS, falta de Internet o cambio del servicio.",
+          "Puedes reemplazar manualmente los GeoJSON en la carpeta data."
+        ], "bad");
+      }
+    }
+
+    async function descargarArcGIS(baseUrl, nombre){
+      const pageSize = 2000;
+      let offset = 0;
+      let features = [];
+
+      while(true){
+        panel.innerHTML = panelBase("Descargando " + nombre, [
+          "Registros descargados: " + features.length
+        ]);
+
+        const params = new URLSearchParams({
+          where:"1=1",
+          outFields:"*",
+          returnGeometry:"true",
+          outSR:"4326",
+          f:"geojson",
+          resultOffset:String(offset),
+          resultRecordCount:String(pageSize)
+        });
+
+        const res = await fetch(baseUrl + "?" + params.toString());
+        if (!res.ok) throw new Error("Error HTTP " + res.status + " al descargar " + nombre);
+
+        const geo = await res.json();
+        if (!geo.features || !Array.isArray(geo.features)) throw new Error("Respuesta GeoJSON inválida en " + nombre);
+
+        features = features.concat(geo.features);
+        if (geo.features.length < pageSize) break;
+
+        offset += pageSize;
+        if (offset > 100000) throw new Error("Demasiados registros en " + nombre);
+      }
+
+      return { type:"FeatureCollection", name:nombre, features };
+    }
+
+    function dibujarCapas(){
+      if (capaLineas) map.removeLayer(capaLineas);
+      if (capaLineasTouch) map.removeLayer(capaLineasTouch);
+      if (capaSubestaciones) map.removeLayer(capaSubestaciones);
+      if (lineaResaltada) map.removeLayer(lineaResaltada);
+      if (puntoObjetivoLayer) map.removeLayer(puntoObjetivoLayer);
+
+      capaLineas = L.geoJSON(lineasGeoJSON, {
+        style: f => ({
+          color: colorPorVoltaje(f.properties || {}),
+          weight: 4,
+          opacity: 0.9
+        }),
+        onEachFeature: configurarLinea
+      }).addTo(map);
+
+      /* Capa invisible más ancha para tocar fácil en celular */
+      capaLineasTouch = L.geoJSON(lineasGeoJSON, {
+        style: () => ({
+          color:"#000",
+          weight:26,
+          opacity:0,
+          fillOpacity:0,
+          className:"touch-line"
+        }),
+        onEachFeature: configurarLinea
+      }).addTo(map);
+
+      capaSubestaciones = L.geoJSON(subestacionesGeoJSON, {
+        pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+          radius:10,
+          color:"#003366",
+          fillColor:"#00bcd4",
+          fillOpacity:.9,
+          weight:3
+        }),
+        onEachFeature: (f, layer) => {
+          const p = f.properties || {};
+          layer.bindPopup(infoSubestacionHTML(p));
+          layer.on("click", () => mostrarSubestacionManual(f));
+        }
+      }).addTo(map);
+
+      try{
+        const b = capaLineas.getBounds();
+        if (b.isValid()) map.fitBounds(b);
+      }catch(e){}
+    }
+
+    function configurarLinea(feature, layer){
+      const p = feature.properties || {};
+      layer.bindPopup(infoLineaHTML(p));
+      layer.on("click", () => {
+        resaltarLinea(feature);
+        mostrarLineaManual(feature);
+      });
+    }
+
+    function activarGPS(){
+      if (!navigator.geolocation) {
+        alert("Este dispositivo no soporta GPS.");
+        return;
+      }
+
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+
+      watchId = navigator.geolocation.watchPosition(pos => {
+        ultimaPosicion = pos;
+        actualizarUsuario(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+        detectarCercanos(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+      }, err => {
+        panel.innerHTML = panelBase("GPS no disponible", [
+          err.message,
+          "Activa permisos de ubicación.",
+          "Usa HTTPS, por ejemplo GitHub Pages."
+        ], "bad");
+      }, {
+        enableHighAccuracy:true,
+        maximumAge:1000,
+        timeout:15000
+      });
+    }
+
+    function actualizarUsuario(lat, lng, precision){
+      const latlng = [lat, lng];
+
+      if (!userMarker) {
+        userMarker = L.marker(latlng).addTo(map).bindPopup("Tu ubicación");
+        userCircle = L.circle(latlng, {
+          radius:precision,
+          color:"#007bff",
+          fillColor:"#007bff",
+          fillOpacity:.12,
+          weight:1
+        }).addTo(map);
+        map.setView(latlng, 17);
+      } else {
+        userMarker.setLatLng(latlng);
+        userCircle.setLatLng(latlng);
+        userCircle.setRadius(precision);
+      }
+    }
+
+    function detectarCercanos(lat, lng, precision){
+      const usuario = turf.point([lng, lat]);
+      const radio = Number(document.getElementById("searchRadius").value || 150);
+      const modo = document.getElementById("radarMode").value;
+
+      let mejorLinea = null;
+      let mejorPuntoLinea = null;
+      let menorLinea = Infinity;
+
+      for (const linea of (lineasGeoJSON?.features || [])) {
+        if (!linea.geometry) continue;
+        try{
+          const punto = turf.nearestPointOnLine(linea, usuario, { units:"meters" });
+          const d = punto.properties.dist || turf.distance(usuario, punto, { units:"meters" });
+          if (d < menorLinea) {
+            menorLinea = d;
+            mejorLinea = linea;
+            mejorPuntoLinea = punto;
+          }
+        } catch(e){}
+      }
+
+      let mejorSub = null;
+      let menorSub = Infinity;
+
+      for (const sub of (subestacionesGeoJSON?.features || [])) {
+        try{
+          const d = turf.distance(usuario, sub, { units:"meters" });
+          if (d < menorSub) {
+            menorSub = d;
+            mejorSub = sub;
+          }
+        } catch(e){}
+      }
+
+      const objetivoLinea = crearObjetivo("línea", mejorLinea, mejorPuntoLinea, menorLinea, usuario);
+      const objetivoSub = crearObjetivo("subestación", mejorSub, mejorSub, menorSub, usuario);
+
+      if (modo === "line") {
+        ultimoObjetivo = objetivoLinea;
+        ultimoObjetivoSecundario = null;
+      } else if (modo === "substation") {
+        ultimoObjetivo = objetivoSub;
+        ultimoObjetivoSecundario = null;
+      } else if (modo === "both") {
+        ultimoObjetivo = objetivoLinea;
+        ultimoObjetivoSecundario = objetivoSub;
+      } else {
+        if (objetivoLinea && objetivoSub) {
+          ultimoObjetivo = objetivoLinea.distancia <= objetivoSub.distancia ? objetivoLinea : objetivoSub;
+        } else {
+          ultimoObjetivo = objetivoLinea || objetivoSub;
+        }
+        ultimoObjetivoSecundario = null;
+      }
+
+      mostrarResultado(mejorLinea, menorLinea, mejorSub, menorSub, precision, radio, modo);
+      resaltarLinea(mejorLinea);
+      marcarObjetivo(ultimoObjetivo);
+      actualizarRadar();
+    }
+
+    function crearObjetivo(tipo, feature, pointFeature, distancia, usuario){
+      if (!feature || !pointFeature || !isFinite(distancia)) return null;
+      const props = feature.properties || {};
+      const nombre = campo(props, ["NOMBRE","nombre","Name"], tipo);
+      const bearing = normalizar(turf.bearing(usuario, pointFeature));
+      return {
+        tipo,
+        feature,
+        point: pointFeature,
+        distancia,
+        bearing,
+        nombre
+      };
+    }
+
+    function mostrarResultado(linea, distLinea, sub, distSub, precision, radio, modo){
+      const p = linea?.properties || {};
+      const sp = sub?.properties || {};
+
+      const dentro = linea && distLinea <= radio;
+
+      if (!dentro) {
+        panel.innerHTML = panelBase("Sin línea dentro del radio", [
+          "Radio configurado: " + radio + " m",
+          "Distancia a línea: " + (isFinite(distLinea) ? distLinea.toFixed(1) + " m" : "s/i"),
+          "Subestación cercana: " + campo(sp, ["NOMBRE","nombre","Name"], "s/i") + " (" + (isFinite(distSub) ? distSub.toFixed(0) + " m" : "s/i") + ")",
+          "Modo radar: " + textoModo(modo),
+          "Precisión GPS: ±" + precision.toFixed(1) + " m"
+        ], "bad");
+        return;
+      }
+
+      panel.innerHTML = panelBase(campo(p, ["NOMBRE","nombre","Name"], "Línea cercana"), [
+        "Radio configurado: " + radio + " m",
+        "Distancia a línea: " + distLinea.toFixed(1) + " m",
+        "Tensión: " + campo(p, ["TENSION_KV","voltaje_kv","Voltaje","kv"], "s/i") + " kV",
+        "Propiedad: " + campo(p, ["PROPIEDAD","propietario","Propietario","OWNER"], "s/i"),
+        "Tramo: " + campo(p, ["TRAMO","tramo","Tramo"], "s/i"),
+        "Subestación cercana: " + campo(sp, ["NOMBRE","nombre","Name"], "s/i") + " (" + distSub.toFixed(0) + " m)",
+        "Modo radar: " + textoModo(modo),
+        "Precisión GPS: ±" + precision.toFixed(1) + " m"
+      ], distLinea <= 30 ? "ok" : "warn");
+    }
+
+    function alternarRadar(){
+      radarVisible = !radarVisible;
+      document.getElementById("radarPanel").classList.toggle("hidden", !radarVisible);
+      document.getElementById("btnRadar").classList.toggle("active", radarVisible);
+      pedirPermisoBrujula();
+      actualizarRadar();
+    }
+
+    async function pedirPermisoBrujula(){
+      try{
+        if (typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function") {
+          await DeviceOrientationEvent.requestPermission();
+        }
+
+        window.addEventListener("deviceorientationabsolute", e => {
+          if (e.alpha !== null) {
+            heading = normalizar(360 - e.alpha);
+            actualizarRadar();
+          }
+        }, true);
+
+        window.addEventListener("deviceorientation", e => {
+          if (e.webkitCompassHeading) {
+            heading = e.webkitCompassHeading;
+            actualizarRadar();
+          } else if (e.alpha !== null) {
+            heading = normalizar(360 - e.alpha);
+            actualizarRadar();
+          }
+        }, true);
+      }catch(e){
+        console.warn("Brújula no disponible o permiso denegado", e);
+      }
+    }
+
+    function actualizarRadar(){
+      if (!radarVisible) return;
+
+      const title = document.getElementById("radarTitle");
+      const dist = document.getElementById("radarDistance");
+      const bear = document.getElementById("radarBearing");
+      const mode = document.getElementById("radarModeText");
+      const arrow = document.getElementById("radarArrow");
+
+      if (!ultimoObjetivo) {
+        title.textContent = "Sin objetivo";
+        dist.textContent = "Distancia: --";
+        bear.textContent = "Rumbo: --";
+        mode.textContent = "Modo: " + textoModo(document.getElementById("radarMode").value);
+        return;
+      }
+
+      const relativo = normalizar(ultimoObjetivo.bearing - heading - 90);
+      arrow.style.transform = "translate(-50%,-50%) rotate(" + relativo + "deg)";
+
+      title.textContent = ultimoObjetivo.nombre;
+      dist.textContent = "Distancia: " + ultimoObjetivo.distancia.toFixed(1) + " m";
+      bear.textContent = "Rumbo: " + ultimoObjetivo.bearing.toFixed(0) + "° / " + rumboTexto(ultimoObjetivo.bearing);
+      mode.textContent = "Objetivo: " + ultimoObjetivo.tipo + " · " + textoModo(document.getElementById("radarMode").value);
+    }
+
+    function marcarObjetivo(obj){
+      if (puntoObjetivoLayer) {
+        map.removeLayer(puntoObjetivoLayer);
+        puntoObjetivoLayer = null;
+      }
+      if (!obj || !obj.point || !obj.point.geometry) return;
+
+      const coords = obj.point.geometry.coordinates;
+      puntoObjetivoLayer = L.circleMarker([coords[1], coords[0]], {
+        radius:8,
+        color:"#ff8c00",
+        fillColor:"#ffff00",
+        fillOpacity:.95,
+        weight:3
+      }).addTo(map).bindPopup("Objetivo radar: " + obj.tipo);
+    }
+
+    function resaltarLinea(linea){
+      if (lineaResaltada) {
+        map.removeLayer(lineaResaltada);
+        lineaResaltada = null;
+      }
+      if (!linea) return;
+
+      lineaResaltada = L.geoJSON(linea, {
+        style:{
+          color:"#ffff00",
+          weight:9,
+          opacity:.95
+        }
+      }).addTo(map);
+    }
+
+    function centrarUsuario(){
+      if (!ultimaPosicion) {
+        alert("Primero activa GPS.");
+        return;
+      }
+      map.setView([ultimaPosicion.coords.latitude, ultimaPosicion.coords.longitude], 18);
+    }
+
+    function mostrarEstado(){
+      const fecha = localStorage.getItem("fecha_descarga_datos");
+      const tiene = !!localStorage.getItem("lineas_oficiales_geojson");
+      const radio = document.getElementById("searchRadius").value;
+      const modo = document.getElementById("radarMode").value;
+
+      panel.innerHTML = panelBase("Estado de la aplicación", [
+        "Etapa: 2 Final",
+        "Zoom + / -: libre arriba a la izquierda",
+        "Radio de búsqueda: " + radio + " m",
+        "Modo radar: " + textoModo(modo),
+        "Conexión: " + (navigator.onLine ? "Con Internet" : "Sin Internet"),
+        "Datos oficiales guardados: " + (tiene ? "Sí" : "No"),
+        "Fecha descarga: " + (fecha ? new Date(fecha).toLocaleString() : "Sin descarga"),
+        "Líneas cargadas: " + (lineasGeoJSON?.features?.length || 0),
+        "Subestaciones cargadas: " + (subestacionesGeoJSON?.features?.length || 0)
+      ], "ok");
+    }
+
+    function mostrarLineaManual(feature){
+      const p = feature.properties || {};
+      panel.innerHTML = panelBase("Línea seleccionada", [
+        "Nombre: " + campo(p, ["NOMBRE","nombre","Name"], "Línea sin nombre"),
+        "Tensión: " + campo(p, ["TENSION_KV","voltaje_kv","Voltaje","kv"], "s/i") + " kV",
+        "Propiedad: " + campo(p, ["PROPIEDAD","propietario","Propietario","OWNER"], "s/i"),
+        "Tramo: " + campo(p, ["TRAMO","tramo","Tramo"], "s/i")
+      ], "ok");
+    }
+
+    function mostrarSubestacionManual(feature){
+      const p = feature.properties || {};
+      panel.innerHTML = panelBase("Subestación seleccionada", [
+        "Nombre: " + campo(p, ["NOMBRE","nombre","Name"], "Subestación"),
+        "Tensión: " + campo(p, ["TENSION_KV","voltaje_kv","Voltaje","kv"], "s/i") + " kV",
+        "Propiedad: " + campo(p, ["PROPIEDAD","propietario","Propietario","OWNER"], "s/i")
+      ], "ok");
+    }
+
+    function infoLineaHTML(p){
+      return "<b>" + campo(p, ["NOMBRE","nombre","Name"], "Línea sin nombre") + "</b><br>" +
+        "Tensión: " + campo(p, ["TENSION_KV","voltaje_kv","Voltaje","kv"], "s/i") + " kV<br>" +
+        "Propiedad: " + campo(p, ["PROPIEDAD","propietario","Propietario","OWNER"], "s/i") + "<br>" +
+        "Tramo: " + campo(p, ["TRAMO","tramo","Tramo"], "s/i");
+    }
+
+    function infoSubestacionHTML(p){
+      return "<b>" + campo(p, ["NOMBRE","nombre","Name"], "Subestación") + "</b><br>" +
+        "Tensión: " + campo(p, ["TENSION_KV","voltaje_kv","Voltaje","kv"], "s/i") + " kV<br>" +
+        "Propiedad: " + campo(p, ["PROPIEDAD","propietario","Propietario","OWNER"], "s/i");
+    }
+
+    function panelBase(titulo, filas, tipo = "warn"){
+      const clase = tipo === "ok" ? "status-ok" : tipo === "bad" ? "status-bad" : "status-warn";
+      return "<h2>" + titulo + "</h2>" +
+        "<span class='" + clase + "'>ElectroLíneas Chile GPS</span>" +
+        filas.map(x => "<div class='data-row'>" + x + "</div>").join("") +
+        "<div class='copyright'><b>Creado por Wladimir Campos</b><br>www.JFSasesorias.org</div>";
+    }
+
+    function campo(obj, nombres, defecto){
+      for (const n of nombres) {
+        if (obj[n] !== undefined && obj[n] !== null && obj[n] !== "") return obj[n];
+      }
+      return defecto;
+    }
+
+    function colorPorVoltaje(p){
+      const v = Number(campo(p, ["TENSION_KV","voltaje_kv","Voltaje","SUBTIPO","kv"], 0));
+      if (v >= 500) return "#d00000";
+      if (v >= 220) return "#ff8c00";
+      if (v >= 154) return "#cc00ff";
+      if (v >= 110) return "#0066ff";
+      if (v >= 66) return "#00a651";
+      return "#555555";
+    }
+
+    function textoModo(modo){
+      if (modo === "line") return "Línea eléctrica";
+      if (modo === "substation") return "Subestación";
+      if (modo === "both") return "Ambas";
+      return "Más cercano";
+    }
+
+    function normalizar(g){
+      return ((g % 360) + 360) % 360;
+    }
+
+    function rumboTexto(g){
+      const dirs = ["N","NE","E","SE","S","SO","O","NO"];
+      return dirs[Math.round(normalizar(g) / 45) % 8];
+    }
+
+    function registrarServiceWorker(){
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./service-worker.js").catch(console.warn);
+      }
+    }
+  </script>
+</body>
+</html>
