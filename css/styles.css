@@ -1,2 +1,66 @@
-/* ElectroLíneas Chile GPS - Wladimir Campos - www.JFSasesorias.org */
-*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#071827;color:#102030}#map{width:100%;height:100%}.leaflet-top.leaflet-left{top:86px}.leaflet-control-zoom a{width:38px!important;height:38px!important;line-height:38px!important;font-size:22px!important}.app-header{position:fixed;top:8px;left:58px;right:10px;z-index:1000;background:rgba(7,24,39,.94);color:white;border-radius:14px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none}.app-header strong{display:block;font-size:15px}.app-header span{display:block;font-size:11px;color:#ffbd66;margin-top:2px}.toolbar{position:fixed;top:64px;left:58px;right:10px;z-index:1000;display:flex;gap:7px;overflow-x:auto;padding:4px 0 6px;align-items:center}.btn{border:0;border-radius:12px;padding:10px 12px;background:#17324d;color:white;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,.28);white-space:nowrap}.btn.primary{background:#ff8c00}.radio-box{background:rgba(255,255,255,.96);border-radius:12px;padding:7px 10px;font-size:13px;font-weight:bold;color:#071827;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.28)}.radio-box input{width:70px;border:1px solid #bbb;border-radius:8px;padding:7px;font-weight:bold}.info-panel{position:fixed;left:10px;right:10px;bottom:30px;z-index:1000;background:rgba(255,255,255,.97);border-radius:16px;padding:13px;box-shadow:0 6px 22px rgba(0,0,0,.38);max-height:38%;overflow:auto}.info-panel h2{margin:0 0 8px;color:#071827;font-size:18px}.info-panel p{margin:6px 0;font-size:14px}.hint{font-size:12px;color:#555}.status-ok,.status-warn,.status-bad{display:inline-block;border-radius:8px;padding:5px 7px;font-weight:bold;margin-bottom:6px}.status-ok{background:#d4edda;color:#155724}.status-warn{background:#fff3cd;color:#856404}.status-bad{background:#f8d7da;color:#721c24}.data-row{font-size:14px;margin:5px 0}.copyright{margin-top:10px;padding-top:8px;border-top:1px solid #ddd;font-size:12px;color:#555;text-align:center}#footer-info{position:fixed;bottom:5px;left:50%;transform:translateX(-50%);z-index:900;background:rgba(255,255,255,.88);padding:4px 10px;border-radius:10px;font-size:11px;color:#444;white-space:nowrap}.hidden{display:none!important}.touch-line{cursor:pointer}.radar{position:fixed;top:120px;right:10px;width:195px;z-index:1200;background:rgba(7,24,39,.95);color:white;border-radius:18px;padding:12px;box-shadow:0 6px 22px rgba(0,0,0,.45)}.radar-circle{position:relative;margin:auto;width:118px;height:118px;border-radius:50%;border:3px solid #ff8c00;background:radial-gradient(circle,#17324d 0%,#071827 70%)}.north{position:absolute;top:6px;left:50%;transform:translateX(-50%);color:#ffbd66;font-weight:bold}.radar-arrow{position:absolute;left:50%;top:50%;font-size:42px;transform-origin:center;transform:translate(-50%,-50%) rotate(0deg);transition:.2s;color:#ff8c00}.center-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:white;left:50%;top:50%;transform:translate(-50%,-50%)}.radar-data{display:flex;flex-direction:column;gap:3px;text-align:center;font-size:12px;margin-top:8px}@media(max-width:520px){.app-header{left:56px;right:8px;padding:8px 10px}.app-header strong{font-size:14px}.app-header span{font-size:10px}.toolbar{left:8px;right:8px;top:70px;padding-left:50px}.leaflet-top.leaflet-left{top:8px}.info-panel{max-height:36%}}@media(min-width:800px){.info-panel{left:auto;width:430px}}
+/*
+ElectroLíneas Chile GPS - Etapa 3
+Creado por Wladimir Campos
+www.JFSasesorias.org
+*/
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#071827}
+#map{width:100%;height:100%}
+
+/* Zoom libre: no se tapa por barras */
+.leaflet-top.leaflet-left{top:10px!important;left:10px!important}
+.leaflet-control-zoom a{width:42px!important;height:42px!important;line-height:42px!important;font-size:24px!important;font-weight:bold}
+
+.brand-card{position:fixed;top:10px;left:62px;right:10px;z-index:900;background:rgba(7,24,39,.92);color:#fff;border-radius:14px;padding:9px 12px;box-shadow:0 5px 16px rgba(0,0,0,.34);pointer-events:none}
+.brand-card strong{display:block;font-size:14px}
+.brand-card span{display:block;font-size:10.5px;color:#ffbd66;margin-top:2px}
+
+.control-dock{position:fixed;left:8px;right:8px;bottom:8px;z-index:1300;background:rgba(7,24,39,.96);border-radius:18px;padding:8px;box-shadow:0 -4px 20px rgba(0,0,0,.36);color:#fff}
+.button-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:5px}
+.btn{border:0;border-radius:12px;padding:10px 12px;background:#17324d;color:#fff;font-weight:bold;white-space:nowrap;min-height:42px}
+.btn.primary{background:#ff8c00}
+.btn.active{outline:2px solid #ffbd66}
+
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:5px}
+.setting{background:rgba(255,255,255,.1);border-radius:12px;padding:7px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.setting input,.setting select{width:100%;border:1px solid #cfd8dc;border-radius:9px;padding:8px;font-weight:bold;background:#fff;color:#071827}
+
+.info-panel{position:fixed;left:8px;right:8px;bottom:145px;z-index:1100;background:rgba(255,255,255,.97);border-radius:16px;padding:12px;box-shadow:0 5px 20px rgba(0,0,0,.35);max-height:31%;overflow:auto;color:#102030}
+.info-panel h2{margin:0 0 7px;font-size:17px;color:#071827}
+.data-row{font-size:13px;margin:4px 0}
+.status-ok,.status-warn,.status-bad{display:inline-block;border-radius:8px;padding:5px 7px;font-weight:bold;margin-bottom:6px;font-size:12px}
+.status-ok{background:#d4edda;color:#155724}
+.status-warn{background:#fff3cd;color:#856404}
+.status-bad{background:#f8d7da;color:#721c24}
+.copyright{margin-top:8px;padding-top:7px;border-top:1px solid #ddd;font-size:11.5px;color:#555;text-align:center}
+
+.radar{position:fixed;top:70px;right:10px;width:176px;z-index:1200;background:rgba(7,24,39,.95);color:#fff;border-radius:18px;padding:10px;box-shadow:0 6px 22px rgba(0,0,0,.45)}
+.radar.hidden{display:none}
+.radar-circle{position:relative;margin:auto;width:110px;height:110px;border-radius:50%;border:3px solid #ff8c00;background:radial-gradient(circle,#17324d 0%,#071827 70%)}
+.north{position:absolute;top:5px;left:50%;transform:translateX(-50%);color:#ffbd66;font-weight:bold;font-size:14px}
+.radar-arrow{position:absolute;left:50%;top:50%;font-size:42px;transform-origin:center center;transform:translate(-50%,-50%) rotate(-90deg);transition:.2s;color:#ff8c00}
+.center-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;left:50%;top:50%;transform:translate(-50%,-50%)}
+.radar-data{display:flex;flex-direction:column;text-align:center;font-size:11.5px;gap:2px;margin-top:6px}
+
+.install-panel{position:fixed;left:10px;right:10px;top:82px;z-index:1600;background:#fff;color:#102030;border-radius:18px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.45);max-height:60%;overflow:auto}
+.install-panel.hidden{display:none}
+.install-panel h2{margin:0 0 8px;color:#071827;font-size:18px}
+.install-text{font-size:14px;line-height:1.35}
+.install-text ol{padding-left:20px}
+.install-actions{display:flex;gap:8px;margin-top:10px}
+.hidden{display:none!important}
+
+@media(min-width:800px){
+  .control-dock{left:50%;transform:translateX(-50%);width:820px}
+  .info-panel{left:auto;right:16px;bottom:160px;width:430px;max-height:42%}
+  .install-panel{left:50%;right:auto;transform:translateX(-50%);width:520px}
+  .brand-card{right:auto;width:430px}
+}
+@media(max-width:420px){
+  .brand-card strong{font-size:13px}
+  .brand-card span{font-size:9.5px}
+  .info-panel{bottom:158px;max-height:28%}
+  .settings-row{grid-template-columns:1fr}
+  .radar{width:160px}
+}
