@@ -1,35 +1,4 @@
 {
   "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "properties": {
-        "NOMBRE": "S/E Demo Cerro Navia",
-        "TENSION_KV": 220,
-        "PROPIEDAD": "Dato de prueba"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -70.66,
-          -33.47
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "NOMBRE": "S/E Demo Polpaico",
-        "TENSION_KV": 500,
-        "PROPIEDAD": "Dato de prueba"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -70.95,
-          -33.1
-        ]
-      }
-    }
-  ]
+  "features": []
 }
