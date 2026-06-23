@@ -23,7 +23,7 @@ const MapModule = {
     if (this.lineaResaltada) this.map.removeLayer(this.lineaResaltada);
     if (this.puntoObjetivoLayer) this.map.removeLayer(this.puntoObjetivoLayer);
 
-    this.capaLineas = L.geoJSON(AppState.lineasGeoJSON, {
+    this.capaLineas = L.geoJSON(AppState.lineasGeoJSON || { type: "FeatureCollection", features: [] }, {
       style: f => ({
         color: colorPorVoltaje(f.properties || {}),
         weight: 4,
@@ -32,7 +32,7 @@ const MapModule = {
       onEachFeature: this.configurarLinea.bind(this)
     }).addTo(this.map);
 
-    this.capaLineasTouch = L.geoJSON(AppState.lineasGeoJSON, {
+    this.capaLineasTouch = L.geoJSON(AppState.lineasGeoJSON || { type: "FeatureCollection", features: [] }, {
       style: () => ({
         color: "#000",
         weight: 26,
@@ -42,7 +42,7 @@ const MapModule = {
       onEachFeature: this.configurarLinea.bind(this)
     }).addTo(this.map);
 
-    this.capaSubestaciones = L.geoJSON(AppState.subestacionesGeoJSON, {
+    this.capaSubestaciones = L.geoJSON(AppState.subestacionesGeoJSON || { type: "FeatureCollection", features: [] }, {
       pointToLayer: (f, latlng) => L.circleMarker(latlng, {
         radius: 10,
         color: "#003366",
