@@ -1,6 +1,6 @@
 {
-  "name": "ElectroLíneas Chile GPS - Etapa 3",
-  "short_name": "ElectroLíneas",
+  "name": "Líneas Eléctricas Chile V3",
+  "short_name": "Líneas V3",
   "description": "Aplicación creada por Wladimir Campos - www.JFSasesorias.org",
   "start_url": "./index.html",
   "scope": "./",
