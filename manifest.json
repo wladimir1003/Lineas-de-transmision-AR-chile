@@ -1,7 +1,7 @@
 {
-  "name": "Líneas Eléctricas Chile V3",
-  "short_name": "Líneas V3",
-  "description": "Aplicación creada por Wladimir Campos - www.JFSasesorias.org",
+  "name": "Líneas Eléctricas Chile V3.1",
+  "short_name": "Líneas V3.1",
+  "description": "Aplicación con GPS, radar y huincha de medir. Creada por Wladimir Campos - www.JFSasesorias.org",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
