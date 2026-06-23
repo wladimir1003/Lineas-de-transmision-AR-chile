@@ -1,5 +1,5 @@
 {
-  "name": "ElectroLíneas Chile GPS - Etapa 2 Final",
+  "name": "ElectroLíneas Chile GPS - Etapa 2 IndexedDB",
   "short_name": "ElectroLíneas E2",
   "description": "Aplicación creada por Wladimir Campos - www.JFSasesorias.org",
   "start_url": "./index.html",
