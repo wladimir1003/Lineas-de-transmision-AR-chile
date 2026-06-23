@@ -1,10 +1,10 @@
 /*
-Líneas Eléctricas Chile V3
+Líneas Eléctricas Chile V3.1
 Creado por Wladimir Campos
 www.JFSasesorias.org
 */
 const APP_CONFIG = {
-  name: "Líneas Eléctricas Chile V3",
+  name: "Líneas Eléctricas Chile V3.1",
   stage: "V3",
   author: "Wladimir Campos",
   website: "www.JFSasesorias.org",
@@ -13,7 +13,7 @@ const APP_CONFIG = {
     subestaciones: "https://ide-energia.minenergia.cl/server/rest/services/IDE_Energia/Visor_IDE_Energ%C3%ADa/MapServer/8/query"
   },
   db: {
-    name: "Líneas Eléctricas Chile V3",
+    name: "Líneas Eléctricas Chile V3.1",
     version: 1,
     storeName: "capas"
   }
