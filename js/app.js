@@ -11,11 +11,11 @@ const App = {
     this.bindEvents();
     await this.cargarDatosIniciales();
 
-    UI.panel("Etapa 3 lista", [
+    UI.panel("Líneas Eléctricas Chile V3 lista", [
       "Dispositivo/navegador: " + Device.label(),
-      "Instalación inteligente según iPad, Android, Chrome o Safari.",
-      "IndexedDB activado para evitar error de cuota.",
-      "GPS, radar y datos oficiales incluidos."
+      "Los GeoJSON locales están vacíos para evitar datos de prueba.",
+      "Presiona Datos oficiales para descargar líneas y subestaciones reales.",
+      "IndexedDB activado para evitar error de cuota."
     ], "ok");
   },
 
@@ -55,6 +55,14 @@ const App = {
     AppState.lineasGeoJSON = await (await fetch("./data/lineas_transmision.geojson")).json();
     AppState.subestacionesGeoJSON = await (await fetch("./data/subestaciones.geojson")).json();
     MapModule.dibujarCapas();
+
+    if ((AppState.lineasGeoJSON.features || []).length === 0 && (AppState.subestacionesGeoJSON.features || []).length === 0) {
+      UI.panel("Sin datos locales", [
+        "Los GeoJSON de data/ están vacíos a propósito.",
+        "Presiona Datos oficiales para descargar información real.",
+        "Si ya descargaste antes, usa Estado para revisar IndexedDB."
+      ], "warn");
+    }
   },
 
   async descargarDatos() {
