@@ -1,9 +1,9 @@
 /*
-ElectroLíneas Chile GPS - Etapa 3
+Líneas Eléctricas Chile V3
 Creado por Wladimir Campos
 www.JFSasesorias.org
 */
-const CACHE_NAME = "electrolineas-chile-gps-etapa3-v1";
+const CACHE_NAME = "lineas-electricas-chile-v3-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
