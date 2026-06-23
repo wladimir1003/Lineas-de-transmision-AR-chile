@@ -1,35 +1,87 @@
-/* ElectroLíneas Chile GPS - Creado por Wladimir Campos - www.JFSasesorias.org */
-let map,userMarker=null,userCircle=null,lineasGeoJSON=null,subestacionesGeoJSON=null,capaLineas=null,capaLineasTouch=null,capaSubestaciones=null,lineaResaltada=null,ultimaPosicion=null,watchId=null,ultimoObjetivo=null,heading=0,radarVisible=false;
-const URL_LINEAS="https://ide-energia.minenergia.cl/server/rest/services/IDE_Energia/Visor_IDE_Energ%C3%ADa/MapServer/10/query";
-const URL_SUBESTACIONES="https://ide-energia.minenergia.cl/server/rest/services/IDE_Energia/Visor_IDE_Energ%C3%ADa/MapServer/8/query";
-const panel=document.getElementById("infoPanel");
-document.addEventListener("DOMContentLoaded",()=>{iniciarMapa();configurarBotones();registrarServiceWorker();cargarDatosIniciales();activarBrujula();});
-function configurarBotones(){document.getElementById("btnGPS").addEventListener("click",activarGPS);document.getElementById("btnDownload").addEventListener("click",descargarDatosOficiales);document.getElementById("btnCenter").addEventListener("click",centrarUsuario);document.getElementById("btnStatus").addEventListener("click",mostrarEstado);document.getElementById('btnRadar').addEventListener('click',async()=>{await solicitarPermisoBrujula();alternarRadar();});}
-function iniciarMapa(){map=L.map("map",{zoomControl:true}).setView([-33.45,-70.66],6);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:21,attribution:"© OpenStreetMap"}).addTo(map);}
-async function cargarDatosIniciales(){const a=localStorage.getItem("lineas_oficiales_geojson"),b=localStorage.getItem("subestaciones_oficiales_geojson");if(a&&b){try{lineasGeoJSON=JSON.parse(a);subestacionesGeoJSON=JSON.parse(b);dibujarCapas();panel.innerHTML=panelBase("Datos oficiales cargados",["Líneas: "+lineasGeoJSON.features.length,"Subestaciones: "+subestacionesGeoJSON.features.length,"Radio visible y configurable arriba.","Toca una línea: ahora tiene área táctil más ancha."]);return}catch(e){console.warn(e)}}await cargarDatosDemo();}
-async function cargarDatosDemo(){lineasGeoJSON=await(await fetch("./data/lineas_transmision.geojson")).json();subestacionesGeoJSON=await(await fetch("./data/subestaciones.geojson")).json();dibujarCapas();panel.innerHTML=panelBase("Datos demo cargados",["Presiona Datos oficiales para cargar Chile real.","El radio de búsqueda está visible en la barra superior.","El zoom + / - ya no queda tapado."]);}
-async function descargarDatosOficiales(){try{panel.innerHTML=panelBase("Descargando datos oficiales",["Conectando con IDE Energía.","Puede demorar según tu conexión."]);const l=await descargarArcGIS(URL_LINEAS,"líneas"),s=await descargarArcGIS(URL_SUBESTACIONES,"subestaciones");localStorage.setItem("lineas_oficiales_geojson",JSON.stringify(l));localStorage.setItem("subestaciones_oficiales_geojson",JSON.stringify(s));localStorage.setItem("fecha_descarga_datos",new Date().toISOString());lineasGeoJSON=l;subestacionesGeoJSON=s;dibujarCapas();panel.innerHTML=panelBase("Datos oficiales descargados",["Líneas: "+l.features.length,"Subestaciones: "+s.features.length,"Quedaron guardados para uso offline."],"ok")}catch(e){panel.innerHTML=panelBase("No se pudo descargar",[e.message,"La app seguirá usando los GeoJSON locales.","También puedes reemplazar manualmente archivos en /data."],"bad")}}
-async function descargarArcGIS(baseUrl,nombre){const pageSize=2000;let offset=0,features=[];while(true){panel.innerHTML=panelBase("Descargando "+nombre,["Registros descargados: "+features.length]);const params=new URLSearchParams({where:"1=1",outFields:"*",returnGeometry:"true",outSR:"4326",f:"geojson",resultOffset:String(offset),resultRecordCount:String(pageSize)});const res=await fetch(baseUrl+"?"+params.toString());if(!res.ok)throw new Error("Error HTTP "+res.status+" al descargar "+nombre);const geo=await res.json();if(!geo.features||!Array.isArray(geo.features))throw new Error("Respuesta GeoJSON inválida en "+nombre);features=features.concat(geo.features);if(geo.features.length<pageSize)break;offset+=pageSize;if(offset>100000)throw new Error("Demasiados registros en "+nombre)}return{type:"FeatureCollection",name:nombre,features}}
-function dibujarCapas(){if(capaLineas)map.removeLayer(capaLineas);if(capaLineasTouch)map.removeLayer(capaLineasTouch);if(capaSubestaciones)map.removeLayer(capaSubestaciones);if(lineaResaltada)map.removeLayer(lineaResaltada);capaLineas=L.geoJSON(lineasGeoJSON,{style:f=>({color:colorPorVoltaje(f.properties||{}),weight:4,opacity:.85}),onEachFeature:configurarLinea}).addTo(map);capaLineasTouch=L.geoJSON(lineasGeoJSON,{style:()=>({color:"#000",weight:22,opacity:.01,fillOpacity:0,className:"touch-line"}),onEachFeature:configurarLinea}).addTo(map);capaSubestaciones=L.geoJSON(subestacionesGeoJSON,{pointToLayer:(f,latlng)=>L.circleMarker(latlng,{radius:9,color:"#003366",fillColor:"#00bcd4",fillOpacity:.9,weight:3}),onEachFeature:(f,layer)=>{layer.on("click",()=>mostrarSubestacion(f));layer.bindPopup(infoSubestacionHTML(f.properties||{}))}}).addTo(map);try{const b=capaLineas.getBounds();if(b.isValid())map.fitBounds(b)}catch(e){}}
-function configurarLinea(feature,layer){layer.on("click",()=>{resaltarLinea(feature);mostrarLineaManual(feature)});layer.bindPopup(infoLineaHTML(feature.properties||{}));}
-function infoLineaHTML(p){return "<b>"+campo(p,["NOMBRE","nombre","Name"],"Línea sin nombre")+"</b><br>Tensión: "+campo(p,["TENSION_KV","voltaje_kv","Voltaje","kv"],"s/i")+" kV<br>Propiedad: "+campo(p,["PROPIEDAD","propietario","Propietario","OWNER"],"s/i")+"<br>Tramo: "+campo(p,["TRAMO","tramo","Tramo"],"s/i")}
-function infoSubestacionHTML(p){return "<b>"+campo(p,["NOMBRE","nombre","Name"],"Subestación")+"</b><br>Tensión: "+campo(p,["TENSION_KV","voltaje_kv","Voltaje","kv"],"s/i")+" kV<br>Propiedad: "+campo(p,["PROPIEDAD","propietario","Propietario","OWNER"],"s/i")}
-function mostrarLineaManual(feature){const p=feature.properties||{};panel.innerHTML=panelBase("Línea seleccionada",["Nombre: "+campo(p,["NOMBRE","nombre","Name"],"Línea sin nombre"),"Tensión: "+campo(p,["TENSION_KV","voltaje_kv","Voltaje","kv"],"s/i")+" kV","Propiedad: "+campo(p,["PROPIEDAD","propietario","Propietario","OWNER"],"s/i"),"Tramo: "+campo(p,["TRAMO","tramo","Tramo"],"s/i")],"ok")}
-function mostrarSubestacion(feature){const p=feature.properties||{};panel.innerHTML=panelBase("Subestación seleccionada",["Nombre: "+campo(p,["NOMBRE","nombre","Name"],"Subestación"),"Tensión: "+campo(p,["TENSION_KV","voltaje_kv","Voltaje","kv"],"s/i")+" kV","Propiedad: "+campo(p,["PROPIEDAD","propietario","Propietario","OWNER"],"s/i")],"ok")}
-function activarGPS(){if(!navigator.geolocation){alert("Este dispositivo no soporta GPS.");return}if(watchId)navigator.geolocation.clearWatch(watchId);watchId=navigator.geolocation.watchPosition(pos=>{ultimaPosicion=pos;const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy;actualizarUsuario(lat,lng,acc);detectarCercanos(lat,lng,acc)},err=>{panel.innerHTML=panelBase("GPS no disponible",[err.message,"Activa permisos de ubicación y usa HTTPS."],"bad")},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})}
-function actualizarUsuario(lat,lng,precision){const latlng=[lat,lng];if(!userMarker){userMarker=L.marker(latlng).addTo(map).bindPopup("Tu ubicación");userCircle=L.circle(latlng,{radius:precision,color:"#007bff",fillColor:"#007bff",fillOpacity:.12,weight:1}).addTo(map);map.setView(latlng,17)}else{userMarker.setLatLng(latlng);userCircle.setLatLng(latlng);userCircle.setRadius(precision)}}
-function detectarCercanos(lat,lng,precision){const usuario=turf.point([lng,lat]);const radio=Number(document.getElementById("searchRadius").value||150);let menorLinea=Infinity,lineaCercana=null,puntoLinea=null;for(const linea of(lineasGeoJSON?.features||[])){if(!linea.geometry)continue;try{const punto=turf.nearestPointOnLine(linea,usuario,{units:"meters"});const d=punto.properties.dist||turf.distance(usuario,punto,{units:"meters"});if(d<menorLinea){menorLinea=d;lineaCercana=linea;puntoLinea=punto}}catch(e){}}let menorSub=Infinity,subCercana=null;for(const sub of(subestacionesGeoJSON?.features||[])){try{const d=turf.distance(usuario,sub,{units:"meters"});if(d<menorSub){menorSub=d;subCercana=sub}}catch(e){}}let objetivoTipo="línea",objetivoDist=menorLinea,objetivoFeature=lineaCercana,objetivoPoint=puntoLinea;if(subCercana&&menorSub<menorLinea){objetivoTipo="subestación";objetivoDist=menorSub;objetivoFeature=subCercana;objetivoPoint=subCercana}if(objetivoFeature&&objetivoPoint){const b=normalizar(turf.bearing(usuario,objetivoPoint));const props=objetivoFeature.properties||{};ultimoObjetivo={tipo:objetivoTipo,distancia:objetivoDist,bearing:b,nombre:campo(props,["NOMBRE","nombre","Name"],objetivoTipo)}}mostrarResultado(lineaCercana,menorLinea,precision,subCercana,menorSub,radio);resaltarLinea(lineaCercana);actualizarRadar();}
-function mostrarResultado(linea,distancia,precision,sub,distSub,radio){const p=linea?.properties||{},sp=sub?.properties||{};if(!linea||distancia>radio){panel.innerHTML=panelBase("Sin línea dentro del radio",["Radio configurado: "+radio+" m","Distancia mínima a línea: "+distancia.toFixed(1)+" m","Precisión GPS: ±"+precision.toFixed(1)+" m","Subestación cercana: "+campo(sp,["NOMBRE","nombre","Name"],"s/i")+" ("+distSub.toFixed(0)+" m)"],"bad");return}panel.innerHTML=panelBase(campo(p,["NOMBRE","nombre","Name"],"Línea cercana"),["Radio configurado: "+radio+" m","Distancia a línea: "+distancia.toFixed(1)+" m","Tensión: "+campo(p,["TENSION_KV","voltaje_kv","Voltaje","kv"],"s/i")+" kV","Propiedad: "+campo(p,["PROPIEDAD","propietario","Propietario","OWNER"],"s/i"),"Tramo: "+campo(p,["TRAMO","tramo","Tramo"],"s/i"),"Subestación cercana: "+campo(sp,["NOMBRE","nombre","Name"],"s/i")+" ("+distSub.toFixed(0)+" m)","Precisión GPS: ±"+precision.toFixed(1)+" m"],distancia<=30?"ok":"warn")}
-function resaltarLinea(linea){if(lineaResaltada){map.removeLayer(lineaResaltada);lineaResaltada=null}if(!linea)return;lineaResaltada=L.geoJSON(linea,{style:{color:"#ffff00",weight:9,opacity:.95}}).addTo(map)}
-function centrarUsuario(){if(!ultimaPosicion){alert("Primero activa GPS.");return}map.setView([ultimaPosicion.coords.latitude,ultimaPosicion.coords.longitude],18)}
-function mostrarEstado(){const fecha=localStorage.getItem("fecha_descarga_datos"),tiene=!!localStorage.getItem("lineas_oficiales_geojson"),radio=document.getElementById("searchRadius").value;panel.innerHTML=panelBase("Estado de la aplicación",["Etapa: 2","Radio de búsqueda: "+radio+" m","Conexión: "+(navigator.onLine?"Con Internet":"Sin Internet"),"Datos oficiales guardados: "+(tiene?"Sí":"No"),"Fecha descarga: "+(fecha?new Date(fecha).toLocaleString():"Sin descarga"),"Líneas cargadas: "+(lineasGeoJSON?.features?.length||0),"Subestaciones cargadas: "+(subestacionesGeoJSON?.features?.length||0)])}
-function panelBase(titulo,filas,tipo="warn"){const clase=tipo==="ok"?"status-ok":tipo==="bad"?"status-bad":"status-warn";return "<h2>"+titulo+"</h2><span class='"+clase+"'>ElectroLíneas Chile GPS</span>"+filas.map(x=>"<div class='data-row'>"+x+"</div>").join("")+"<div class='copyright'><b>Creado por Wladimir Campos</b><br>www.JFSasesorias.org</div>"}
-function campo(obj,nombres,defecto){for(const n of nombres){if(obj[n]!==undefined&&obj[n]!==null&&obj[n]!=="")return obj[n]}return defecto}
-function colorPorVoltaje(p){const v=Number(campo(p,["TENSION_KV","voltaje_kv","Voltaje","SUBTIPO","kv"],0));if(v>=500)return"#d00000";if(v>=220)return"#ff8c00";if(v>=154)return"#cc00ff";if(v>=110)return"#0066ff";if(v>=66)return"#00a651";return"#555"}
-function normalizar(g){return((g%360)+360)%360}function rumboTexto(g){const dirs=["N","NE","E","SE","S","SO","O","NO"];return dirs[Math.round(normalizar(g)/45)%8]}
-function alternarRadar(){radarVisible=!radarVisible;document.getElementById("radarPanel").classList.toggle("hidden",!radarVisible);actualizarRadar()}
-async function solicitarPermisoBrujula(){try{if(typeof DeviceOrientationEvent!=="undefined"&&typeof DeviceOrientationEvent.requestPermission==="function"){const r=await DeviceOrientationEvent.requestPermission();if(r!=="granted"){console.warn("Permiso de brújula no concedido");}}}catch(e){console.warn("No se pudo solicitar permiso de brújula",e);}}
-function activarBrujula(){window.addEventListener("deviceorientationabsolute",e=>{if(e.alpha!==null){heading=normalizar(360-e.alpha);actualizarRadar()}},true);window.addEventListener("deviceorientation",e=>{if(e.webkitCompassHeading){heading=e.webkitCompassHeading;actualizarRadar()}},true)}
-function actualizarRadar(){if(!radarVisible)return;const title=document.getElementById("radarTitle"),dist=document.getElementById("radarDistance"),bear=document.getElementById("radarBearing"),target=document.getElementById("radarTarget"),arrow=document.getElementById("radarArrow");if(!ultimaPosicion||!ultimoObjetivo){title.textContent="Sin objetivo";dist.textContent="Distancia: --";bear.textContent="Rumbo: --";target.textContent="Objetivo: --";return}const relativo=normalizar(ultimoObjetivo.bearing-heading);arrow.style.transform="translate(-50%,-50%) rotate("+relativo+"deg)";title.textContent=ultimoObjetivo.nombre;dist.textContent="Distancia: "+ultimoObjetivo.distancia.toFixed(1)+" m";bear.textContent="Rumbo: "+ultimoObjetivo.bearing.toFixed(0)+"° / "+rumboTexto(ultimoObjetivo.bearing);target.textContent="Objetivo: "+ultimoObjetivo.tipo}
+const AppState = {
+  lineasGeoJSON: null,
+  subestacionesGeoJSON: null,
+  ultimaPosicion: null
+};
 
-function registrarServiceWorker(){if("serviceWorker"in navigator)navigator.serviceWorker.register("./service-worker.js").catch(console.warn)}
+const App = {
+  async init() {
+    MapModule.init();
+    InstallHelper.init();
+    this.bindEvents();
+    await this.cargarDatosIniciales();
+
+    UI.panel("Etapa 3 lista", [
+      "Dispositivo/navegador: " + Device.label(),
+      "Instalación inteligente según iPad, Android, Chrome o Safari.",
+      "IndexedDB activado para evitar error de cuota.",
+      "GPS, radar y datos oficiales incluidos."
+    ], "ok");
+  },
+
+  bindEvents() {
+    document.getElementById("btnGPS").addEventListener("click", () => GPS.activar());
+    document.getElementById("btnDownload").addEventListener("click", () => this.descargarDatos());
+    document.getElementById("btnCenter").addEventListener("click", () => MapModule.centrarUsuario());
+    document.getElementById("btnRadar").addEventListener("click", () => Radar.alternar());
+    document.getElementById("btnStatus").addEventListener("click", () => UI.estado());
+    document.getElementById("btnClear").addEventListener("click", () => this.limpiarDatos());
+    document.getElementById("radarMode").addEventListener("change", () => {
+      if (AppState.ultimaPosicion) {
+        Radar.detectarCercanos(
+          AppState.ultimaPosicion.coords.latitude,
+          AppState.ultimaPosicion.coords.longitude,
+          AppState.ultimaPosicion.coords.accuracy
+        );
+      }
+    });
+  },
+
+  async cargarDatosIniciales() {
+    try {
+      const lineas = await DB.get("lineas");
+      const subestaciones = await DB.get("subestaciones");
+
+      if (lineas && subestaciones) {
+        AppState.lineasGeoJSON = lineas.data;
+        AppState.subestacionesGeoJSON = subestaciones.data;
+        MapModule.dibujarCapas();
+        return;
+      }
+    } catch (e) {
+      console.warn("IndexedDB no disponible o vacío", e);
+    }
+
+    AppState.lineasGeoJSON = await (await fetch("./data/lineas_transmision.geojson")).json();
+    AppState.subestacionesGeoJSON = await (await fetch("./data/subestaciones.geojson")).json();
+    MapModule.dibujarCapas();
+  },
+
+  async descargarDatos() {
+    try {
+      await IDEEnergia.descargarDatosOficiales();
+    } catch (err) {
+      UI.panel("No se pudo descargar", [
+        err.message,
+        "Si dice CORS: el servidor bloqueó la consulta.",
+        "Si dice cuota: usa Limpiar datos y revisa almacenamiento del equipo.",
+        "Esta versión usa IndexedDB, no localStorage."
+      ], "bad");
+    }
+  },
+
+  async limpiarDatos() {
+    if (!confirm("¿Borrar datos oficiales guardados en este dispositivo?")) return;
+    await DB.deleteDatabase();
+    localStorage.removeItem("lineas_oficiales_geojson");
+    localStorage.removeItem("subestaciones_oficiales_geojson");
+    localStorage.removeItem("fecha_descarga_datos");
+
+    UI.panel("Datos locales borrados", [
+      "Se limpió IndexedDB y localStorage antiguo.",
+      "Recarga la página y vuelve a descargar datos oficiales."
+    ], "ok");
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => App.init());
