@@ -39,7 +39,7 @@ const InstallHelper = {
         <ol>
           <li>Presiona el botón <b>Compartir</b> de Safari.</li>
           <li>Selecciona <b>Agregar a pantalla de inicio</b>.</li>
-          <li>Confirma el nombre <b>ElectroLíneas</b>.</li>
+          <li>Confirma el nombre <b>Líneas Eléctricas</b>.</li>
         </ol>
         <p>En iPad Safari esta es la forma correcta de instalar la PWA.</p>`;
     } else if (d.isIPad && d.isCriOS) {
