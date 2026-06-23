@@ -1,9 +1,9 @@
 /*
-Líneas Eléctricas Chile V3
+Líneas Eléctricas Chile V3.1
 Creado por Wladimir Campos
 www.JFSasesorias.org
 */
-const CACHE_NAME = "lineas-electricas-chile-v3-v1";
+const CACHE_NAME = "lineas-electricas-chile-v31-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -22,6 +22,7 @@ const APP_SHELL = [
   "./js/map/map.js",
   "./js/gps/gps.js",
   "./js/radar/radar.js",
+  "./js/measure/measure.js",
   "./js/app.js",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
