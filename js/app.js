@@ -8,10 +8,11 @@ const App = {
   async init() {
     MapModule.init();
     InstallHelper.init();
+    Measure.init();
     this.bindEvents();
     await this.cargarDatosIniciales();
 
-    UI.panel("Líneas Eléctricas Chile V3 lista", [
+    UI.panel("Líneas Eléctricas Chile V3.1 lista", [
       "Dispositivo/navegador: " + Device.label(),
       "Los GeoJSON locales están vacíos para evitar datos de prueba.",
       "Presiona Datos oficiales para descargar líneas y subestaciones reales.",
