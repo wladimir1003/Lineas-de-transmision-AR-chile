@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
   <!--
-  Líneas Eléctricas Chile V3
+  Líneas Eléctricas Chile V3.1
   Creado por Wladimir Campos
   www.JFSasesorias.org
   -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Líneas Eléctricas Chile V3</title>
+  <title>Líneas Eléctricas Chile V3.1</title>
   <meta name="description" content="Aplicación GPS para líneas de transmisión y subestaciones de Chile. Creado por Wladimir Campos - www.JFSasesorias.org" />
   <meta name="author" content="Wladimir Campos - www.JFSasesorias.org" />
   <meta name="theme-color" content="#071827" />
@@ -27,7 +27,7 @@
   <div id="map"></div>
 
   <div class="brand-card">
-    <strong>Líneas Eléctricas Chile V3</strong>
+    <strong>Líneas Eléctricas Chile V3.1</strong>
     <span>Creado por Wladimir Campos · www.JFSasesorias.org</span>
   </div>
 
@@ -55,11 +55,11 @@
   </section>
 
   <section id="infoPanel" class="info-panel">
-    <h2>V3 lista</h2>
+    <h2>V3.1 lista</h2>
     <span class="status-warn">PWA + iPad/Android + GPS</span>
     <div class="data-row">Detecta iPad, Android, Chrome y Safari.</div>
     <div class="data-row">Entrega instrucciones de instalación según dispositivo.</div>
-    <div class="data-row">Mantiene IndexedDB, radar y descarga de datos oficiales.</div>
+    <div class="data-row">Mantiene IndexedDB, radar, descarga de datos oficiales y huincha GPS → punto tocado.</div>
     <div class="copyright">
       <b>Creado por Wladimir Campos</b><br>www.JFSasesorias.org
     </div>
@@ -71,6 +71,8 @@
       <button id="btnDownload" class="btn">Datos oficiales</button>
       <button id="btnCenter" class="btn">Centrar</button>
       <button id="btnRadar" class="btn">Radar</button>
+      <button id="btnMeasure" class="btn">Medir</button>
+      <button id="btnClearMeasure" class="btn">Borrar medida</button>
       <button id="btnInstallHelp" class="btn">Instalar</button>
       <button id="btnStatus" class="btn">Estado</button>
       <button id="btnClear" class="btn">Limpiar datos</button>
@@ -107,6 +109,7 @@
   <script src="./js/map/map.js"></script>
   <script src="./js/gps/gps.js"></script>
   <script src="./js/radar/radar.js"></script>
+  <script src="./js/measure/measure.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>
